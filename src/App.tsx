@@ -12,7 +12,7 @@ const INITIAL_STATS: UserStats = {
   maxHp: 100,
   STR: 10,
   INT: 10,
-  DISC: 100,
+  DISC: 0,
   WILL: 10,
   FOCUS: 100,
   CHA: 10,
@@ -51,7 +51,13 @@ const TASK_POOL = {
 function App() {
   const [state, setState] = useState<SystemState>(() => {
     const saved = localStorage.getItem('ascension_system_v2');
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Migration: Ensure new tracking fields exist
+      if (parsed.stats.assignedCount === undefined) parsed.stats.assignedCount = 0;
+      if (parsed.stats.completedCount === undefined) parsed.stats.completedCount = 0;
+      return parsed;
+    }
 
     return {
       version: '2.0',
@@ -205,7 +211,10 @@ function App() {
       newStats.completedCount += 1;
 
       // Update DISC formula: Completed / Assigned * 100
-      newStats.DISC = Math.round((newStats.completedCount / newStats.assignedCount) * 100);
+      // Guard against division by zero
+      newStats.DISC = newStats.assignedCount > 0
+        ? Math.round((newStats.completedCount / newStats.assignedCount) * 100)
+        : 0;
 
       // XP and Stat Rewards
       let xpGained = task.xpReward;
