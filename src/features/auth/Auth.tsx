@@ -20,33 +20,28 @@ export const AuthManager = () => {
     const [loading, setLoading] = useState(false);
     const [profileList, setProfileList] = useState<ProfileEntry[]>([]);
     const [listLoading, setListLoading] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState<string | null>(null); // profile id pending delete
 
     // Fetch profile list from Firestore whenever the user logs in
     useEffect(() => {
-        if (!user) {
-            setProfileList([]);
-            return;
-        }
+        if (!user) { setProfileList([]); return; }
         const loadList = async () => {
             setListLoading(true);
-            // 1. Fetch cloud list (works on any device)
             const cloudList = await fetchProfileList(user.uid);
-            // 2. Merge with any local-only entries (backwards compat)
-            const localList: ProfileEntry[] = JSON.parse(
-                localStorage.getItem('ascension_profile_list') || '[]'
-            );
-            const merged = [...cloudList];
-            for (const local of localList) {
-                if (!merged.some(c => c.id === local.id)) {
-                    merged.push(local);
+            if (cloudList.length > 0) {
+                // Cloud is the source of truth — update localStorage to match
+                localStorage.setItem('ascension_profile_list', JSON.stringify(cloudList));
+                setProfileList(cloudList);
+            } else {
+                // First login on this account: seed cloud from localStorage
+                const localList: ProfileEntry[] = JSON.parse(
+                    localStorage.getItem('ascension_profile_list') || '[]'
+                );
+                if (localList.length > 0) {
+                    await saveProfileList(user.uid, localList);
                 }
+                setProfileList(localList);
             }
-            // 3. Persist the merged result everywhere
-            localStorage.setItem('ascension_profile_list', JSON.stringify(merged));
-            if (merged.length !== cloudList.length) {
-                await saveProfileList(user.uid, merged); // back-fill cloud if local had extras
-            }
-            setProfileList(merged);
             setListLoading(false);
         };
         loadList();
@@ -74,18 +69,19 @@ export const AuthManager = () => {
         setState(null);
     };
 
-    const handleDelete = async (p: ProfileEntry) => {
-        const confirmed = window.confirm(`DELETE "${p.name.toUpperCase()}"? This cannot be undone.`);
-        if (!confirmed || !user) return;
-        const updated = profileList.filter(x => x.id !== p.id);
-        // Sync everywhere
+    const handleDelete = async (id: string) => {
+        if (!user) return;
+        const updated = profileList.filter(x => x.id !== id);
+        // Update state + localStorage immediately
         setProfileList(updated);
+        setConfirmDelete(null);
         localStorage.setItem('ascension_profile_list', JSON.stringify(updated));
+        // Sync deletions to Firestore
         await Promise.all([
-            deleteProfileFromCloud(user.uid, p.id),
+            deleteProfileFromCloud(user.uid, id),
             saveProfileList(user.uid, updated),
         ]);
-        if (activeProfile === p.id) {
+        if (activeProfile === id) {
             setActiveProfile(null);
             setState(null);
         }
@@ -135,52 +131,60 @@ export const AuthManager = () => {
                 <div style={{ padding: '15px', border: '1px solid var(--accent-gold)', marginBottom: '30px', background: 'rgba(255, 204, 0, 0.05)' }}>
                     <div className="neon-text" style={{ fontSize: '0.6rem', color: 'var(--accent-gold)', marginBottom: '5px' }}>[ CLOUD STATUS: SYNCED ]</div>
                     <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', margin: 0 }}>
-                        Identity: <strong>{user.email}</strong>.
-                        Your stats are now mirrored across all systems.
+                        Identity: <strong>{user.email}</strong>. Your stats are now mirrored across all systems.
                     </p>
                 </div>
 
                 <SystemCard title="ACTIVE LOADS">
                     {listLoading && (
-                        <p style={{ fontSize: '0.7rem', opacity: 0.5, textAlign: 'center' }}>
-                            SCANNING CLOUD FOR LOADS...
-                        </p>
+                        <p style={{ fontSize: '0.7rem', opacity: 0.5, textAlign: 'center' }}>SCANNING CLOUD FOR LOADS...</p>
                     )}
                     {!listLoading && profileList.length === 0 && (
-                        <p style={{ fontSize: '0.7rem', opacity: 0.5, textAlign: 'center' }}>
-                            NO PROFILES FOUND. INITIALIZE A NEW LOAD.
-                        </p>
+                        <p style={{ fontSize: '0.7rem', opacity: 0.5, textAlign: 'center' }}>NO PROFILES FOUND. INITIALIZE A NEW LOAD.</p>
                     )}
+
                     {!listLoading && profileList.map(p => (
-                        <div key={p.id} style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-                            <button onClick={async () => {
-                                setLoading(true);
-                                const cloudData = await fetchStateFromCloud(user.uid, p.id);
-                                if (cloudData) {
-                                    setState(cloudData);
-                                    setActiveProfile(p.id);
-                                } else if (state && activeProfile === p.id) {
-                                    setActiveProfile(p.id);
-                                } else {
-                                    alert("PROFILE DATA NOT FOUND IN CLOUD. Try creating a new profile.");
-                                }
-                                setLoading(false);
-                            }} style={{ flex: 1 }} disabled={loading}>
-                                {loading ? "FETCHING..." : `ACCESS: ${p.name.toUpperCase()}`}
-                            </button>
-                            <button onClick={() => handleDelete(p)} disabled={loading} style={{
-                                width: 'auto',
-                                padding: '0 12px',
-                                borderColor: 'var(--accent-red)',
-                                color: 'var(--accent-red)',
-                                background: 'rgba(255,59,48,0.05)',
-                                fontSize: '0.6rem',
-                                flexShrink: 0
-                            }}>
-                                [ DELETE ]
-                            </button>
+                        <div key={p.id} style={{ marginBottom: '10px' }}>
+                            {confirmDelete === p.id ? (
+                                // Inline confirm — no window.confirm (blocked in PWA mode)
+                                <div style={{ display: 'flex', gap: '8px', border: '1px solid var(--accent-red)', padding: '10px', background: 'rgba(255,59,48,0.06)' }}>
+                                    <span style={{ flex: 1, fontSize: '0.65rem', color: 'var(--accent-red)', display: 'flex', alignItems: 'center' }}>
+                                        DELETE "{p.name.toUpperCase()}"? CANNOT BE UNDONE.
+                                    </span>
+                                    <button onClick={() => handleDelete(p.id)} style={{ borderColor: 'var(--accent-red)', color: 'var(--accent-red)', background: 'rgba(255,59,48,0.1)', padding: '4px 10px', fontSize: '0.6rem' }}>
+                                        CONFIRM
+                                    </button>
+                                    <button onClick={() => setConfirmDelete(null)} style={{ padding: '4px 10px', fontSize: '0.6rem' }}>
+                                        CANCEL
+                                    </button>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button onClick={async () => {
+                                        setLoading(true);
+                                        const cloudData = await fetchStateFromCloud(user.uid, p.id);
+                                        if (cloudData) {
+                                            setState(cloudData);
+                                            setActiveProfile(p.id);
+                                        } else {
+                                            alert("PROFILE DATA NOT FOUND IN CLOUD. Try creating a new profile.");
+                                        }
+                                        setLoading(false);
+                                    }} style={{ flex: 1 }} disabled={loading}>
+                                        {loading ? "FETCHING..." : `ACCESS: ${p.name.toUpperCase()}`}
+                                    </button>
+                                    <button onClick={() => setConfirmDelete(p.id)} style={{
+                                        width: 'auto', padding: '0 12px',
+                                        borderColor: 'var(--accent-red)', color: 'var(--accent-red)',
+                                        background: 'rgba(255,59,48,0.05)', fontSize: '0.6rem', flexShrink: 0
+                                    }}>
+                                        [ DELETE ]
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     ))}
+
                     <button
                         onClick={() => { const n = prompt("ENTER PROFILE IDENTITY:"); if (n) createProfile(n); }}
                         style={{ width: '100%', borderColor: 'var(--accent-gold)', color: 'var(--accent-gold)', marginTop: '10px' }}
