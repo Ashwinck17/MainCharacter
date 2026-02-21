@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
-import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
+import { getFirestore, doc, setDoc, getDoc, deleteDoc, onSnapshot } from "firebase/firestore";
 import type { SystemState } from "../types";
 
 const firebaseConfig = {
@@ -61,3 +61,13 @@ export const fetchStateFromCloud = async (userId: string, profileId: string): Pr
         return null;
     }
 };
+
+export const deleteProfileFromCloud = async (userId: string, profileId: string): Promise<void> => {
+    if (!userId || !profileId) return;
+    try {
+        await deleteDoc(doc(db, "users", userId, "profiles", profileId));
+    } catch (error) {
+        console.error("Cloud Delete Error:", error);
+    }
+};
+

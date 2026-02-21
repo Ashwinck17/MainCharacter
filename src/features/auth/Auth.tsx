@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { useSystemStore } from '../../store/useSystemStore';
 import { SystemCard } from '../../components/SystemCard';
-import { auth, fetchStateFromCloud } from '../../api/firebaseService';
+import { auth, fetchStateFromCloud, deleteProfileFromCloud } from '../../api/firebaseService';
 
 export const AuthManager = () => {
     const { activeProfile, setActiveProfile, state, setState, createProfile, user } = useSystemStore();
@@ -85,22 +85,49 @@ export const AuthManager = () => {
                 <SystemCard title="ACTIVE LOADS">
                     {list.length === 0 && <p style={{ fontSize: '0.7rem', opacity: 0.5, textAlign: 'center' }}>NO PROFILES FOUND ON THIS DEVICE.</p>}
                     {list.map((p: any) => (
-                        <button key={p.id} onClick={async () => {
-                            setLoading(true);
-                            const cloudData = await fetchStateFromCloud(user.uid, p.id);
-                            if (cloudData) {
-                                setState(cloudData);
-                                setActiveProfile(p.id);
-                            } else if (state && activeProfile === p.id) {
-                                // Fallback: use locally persisted state if it matches this profile
-                                setActiveProfile(p.id);
-                            } else {
-                                alert("PROFILE DATA NOT FOUND IN CLOUD. Try creating a new profile.");
-                            }
-                            setLoading(false);
-                        }} style={{ width: '100%', marginBottom: '10px' }} disabled={loading}>
-                            {loading ? "FETCHING..." : `ACCESS: ${p.name.toUpperCase()}`}
-                        </button>
+                        <div key={p.id} style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                            <button onClick={async () => {
+                                setLoading(true);
+                                const cloudData = await fetchStateFromCloud(user.uid, p.id);
+                                if (cloudData) {
+                                    setState(cloudData);
+                                    setActiveProfile(p.id);
+                                } else if (state && activeProfile === p.id) {
+                                    setActiveProfile(p.id);
+                                } else {
+                                    alert("PROFILE DATA NOT FOUND IN CLOUD. Try creating a new profile.");
+                                }
+                                setLoading(false);
+                            }} style={{ flex: 1 }} disabled={loading}>
+                                {loading ? "FETCHING..." : `ACCESS: ${p.name.toUpperCase()}`}
+                            </button>
+                            <button onClick={async () => {
+                                const confirmed = window.confirm(`DELETE "${p.name.toUpperCase()}"? This cannot be undone.`);
+                                if (!confirmed) return;
+                                // Remove from localStorage list
+                                const updated = list.filter((x: any) => x.id !== p.id);
+                                localStorage.setItem('ascension_profile_list', JSON.stringify(updated));
+                                // Remove from Firestore
+                                await deleteProfileFromCloud(user.uid, p.id);
+                                // If this was the active profile, clear the store
+                                if (activeProfile === p.id) {
+                                    setActiveProfile(null);
+                                    setState(null);
+                                }
+                                // Force re-render by nudging state
+                                window.location.reload();
+                            }} disabled={loading} style={{
+                                width: 'auto',
+                                padding: '0 12px',
+                                borderColor: 'var(--accent-red)',
+                                color: 'var(--accent-red)',
+                                background: 'rgba(255,59,48,0.05)',
+                                fontSize: '0.6rem',
+                                flexShrink: 0
+                            }}>
+                                [ DELETE ]
+                            </button>
+                        </div>
                     ))}
                     <button onClick={() => { const n = prompt("ENTER PROFILE IDENTITY:"); if (n) createProfile(n); }} style={{ width: '100%', borderColor: 'var(--accent-gold)', color: 'var(--accent-gold)', marginTop: '10px' }}>
                         + INITIALIZE NEW LOAD
