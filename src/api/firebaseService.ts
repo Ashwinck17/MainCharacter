@@ -21,6 +21,31 @@ export const db = getFirestore(app);
  * Enterprise standard: Single Source of Truth in Firestore
  */
 
+export type ProfileEntry = { id: string; name: string };
+
+/** Save the full profile directory for this user to Firestore */
+export const saveProfileList = async (userId: string, profiles: ProfileEntry[]): Promise<void> => {
+    if (!userId) return;
+    try {
+        await setDoc(doc(db, "users", userId, "_index", "profiles"), { list: profiles }, { merge: false });
+    } catch (error) {
+        console.error("Profile List Save Error:", error);
+    }
+};
+
+/** Fetch the profile directory from Firestore — works on any device */
+export const fetchProfileList = async (userId: string): Promise<ProfileEntry[]> => {
+    if (!userId) return [];
+    try {
+        const snap = await getDoc(doc(db, "users", userId, "_index", "profiles"));
+        if (snap.exists()) return snap.data().list as ProfileEntry[];
+        return [];
+    } catch (error) {
+        console.error("Profile List Fetch Error:", error);
+        return [];
+    }
+};
+
 export const saveProfileData = async (userId: string, profileId: string, state: any) => {
     if (!userId || !profileId) return;
     try {

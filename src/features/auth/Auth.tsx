@@ -1,8 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { useSystemStore } from '../../store/useSystemStore';
 import { SystemCard } from '../../components/SystemCard';
-import { auth, fetchStateFromCloud, deleteProfileFromCloud } from '../../api/firebaseService';
+import {
+    auth,
+    fetchStateFromCloud,
+    deleteProfileFromCloud,
+    fetchProfileList,
+    saveProfileList,
+} from '../../api/firebaseService';
+import type { ProfileEntry } from '../../api/firebaseService';
 
 export const AuthManager = () => {
     const { activeProfile, setActiveProfile, state, setState, createProfile, user } = useSystemStore();
@@ -11,6 +18,39 @@ export const AuthManager = () => {
     const [isLogin, setIsLogin] = useState(true);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [profileList, setProfileList] = useState<ProfileEntry[]>([]);
+    const [listLoading, setListLoading] = useState(false);
+
+    // Fetch profile list from Firestore whenever the user logs in
+    useEffect(() => {
+        if (!user) {
+            setProfileList([]);
+            return;
+        }
+        const loadList = async () => {
+            setListLoading(true);
+            // 1. Fetch cloud list (works on any device)
+            const cloudList = await fetchProfileList(user.uid);
+            // 2. Merge with any local-only entries (backwards compat)
+            const localList: ProfileEntry[] = JSON.parse(
+                localStorage.getItem('ascension_profile_list') || '[]'
+            );
+            const merged = [...cloudList];
+            for (const local of localList) {
+                if (!merged.some(c => c.id === local.id)) {
+                    merged.push(local);
+                }
+            }
+            // 3. Persist the merged result everywhere
+            localStorage.setItem('ascension_profile_list', JSON.stringify(merged));
+            if (merged.length !== cloudList.length) {
+                await saveProfileList(user.uid, merged); // back-fill cloud if local had extras
+            }
+            setProfileList(merged);
+            setListLoading(false);
+        };
+        loadList();
+    }, [user]);
 
     const handleAuth = async () => {
         setError('');
@@ -34,6 +74,24 @@ export const AuthManager = () => {
         setState(null);
     };
 
+    const handleDelete = async (p: ProfileEntry) => {
+        const confirmed = window.confirm(`DELETE "${p.name.toUpperCase()}"? This cannot be undone.`);
+        if (!confirmed || !user) return;
+        const updated = profileList.filter(x => x.id !== p.id);
+        // Sync everywhere
+        setProfileList(updated);
+        localStorage.setItem('ascension_profile_list', JSON.stringify(updated));
+        await Promise.all([
+            deleteProfileFromCloud(user.uid, p.id),
+            saveProfileList(user.uid, updated),
+        ]);
+        if (activeProfile === p.id) {
+            setActiveProfile(null);
+            setState(null);
+        }
+    };
+
+    // ── Login screen ──────────────────────────────────────────────────────────
     if (!user) {
         return (
             <div className="app-container" style={{ maxWidth: '400px', margin: '0 auto', padding: '40px 20px' }}>
@@ -65,8 +123,8 @@ export const AuthManager = () => {
         );
     }
 
+    // ── Profile picker ────────────────────────────────────────────────────────
     if (!activeProfile || !state) {
-        const list = JSON.parse(localStorage.getItem('ascension_profile_list') || '[]');
         return (
             <div className="app-container" style={{ maxWidth: '600px', margin: '0 auto', padding: '40px 20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -83,8 +141,17 @@ export const AuthManager = () => {
                 </div>
 
                 <SystemCard title="ACTIVE LOADS">
-                    {list.length === 0 && <p style={{ fontSize: '0.7rem', opacity: 0.5, textAlign: 'center' }}>NO PROFILES FOUND ON THIS DEVICE.</p>}
-                    {list.map((p: any) => (
+                    {listLoading && (
+                        <p style={{ fontSize: '0.7rem', opacity: 0.5, textAlign: 'center' }}>
+                            SCANNING CLOUD FOR LOADS...
+                        </p>
+                    )}
+                    {!listLoading && profileList.length === 0 && (
+                        <p style={{ fontSize: '0.7rem', opacity: 0.5, textAlign: 'center' }}>
+                            NO PROFILES FOUND. INITIALIZE A NEW LOAD.
+                        </p>
+                    )}
+                    {!listLoading && profileList.map(p => (
                         <div key={p.id} style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
                             <button onClick={async () => {
                                 setLoading(true);
@@ -101,22 +168,7 @@ export const AuthManager = () => {
                             }} style={{ flex: 1 }} disabled={loading}>
                                 {loading ? "FETCHING..." : `ACCESS: ${p.name.toUpperCase()}`}
                             </button>
-                            <button onClick={async () => {
-                                const confirmed = window.confirm(`DELETE "${p.name.toUpperCase()}"? This cannot be undone.`);
-                                if (!confirmed) return;
-                                // Remove from localStorage list
-                                const updated = list.filter((x: any) => x.id !== p.id);
-                                localStorage.setItem('ascension_profile_list', JSON.stringify(updated));
-                                // Remove from Firestore
-                                await deleteProfileFromCloud(user.uid, p.id);
-                                // If this was the active profile, clear the store
-                                if (activeProfile === p.id) {
-                                    setActiveProfile(null);
-                                    setState(null);
-                                }
-                                // Force re-render by nudging state
-                                window.location.reload();
-                            }} disabled={loading} style={{
+                            <button onClick={() => handleDelete(p)} disabled={loading} style={{
                                 width: 'auto',
                                 padding: '0 12px',
                                 borderColor: 'var(--accent-red)',
@@ -129,7 +181,10 @@ export const AuthManager = () => {
                             </button>
                         </div>
                     ))}
-                    <button onClick={() => { const n = prompt("ENTER PROFILE IDENTITY:"); if (n) createProfile(n); }} style={{ width: '100%', borderColor: 'var(--accent-gold)', color: 'var(--accent-gold)', marginTop: '10px' }}>
+                    <button
+                        onClick={() => { const n = prompt("ENTER PROFILE IDENTITY:"); if (n) createProfile(n); }}
+                        style={{ width: '100%', borderColor: 'var(--accent-gold)', color: 'var(--accent-gold)', marginTop: '10px' }}
+                    >
                         + INITIALIZE NEW LOAD
                     </button>
                 </SystemCard>

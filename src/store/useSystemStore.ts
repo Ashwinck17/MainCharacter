@@ -4,7 +4,7 @@ import type { User } from 'firebase/auth';
 import type { SystemState, Task } from '../types';
 import { INITIAL_STATS, TASK_POOL, STABILIZATION_TASKS } from '../utils/constants';
 import { calculateNewStatsAfterTask, getDifficultyForStats, getJourneyDayFromStart, getArcForDay } from '../utils/gameLogic';
-import { saveProfileData } from '../api/firebaseService';
+import { saveProfileData, saveProfileList } from '../api/firebaseService';
 
 interface SystemStore {
     user: User | null;
@@ -68,10 +68,11 @@ export const useSystemStore = create<SystemStore>()(
 
                 set({ activeProfile: id, state: newState });
 
-                // Push newly created profile to cloud
+                // Push newly created profile + updated index to cloud
                 const { user } = get();
                 if (user) {
                     saveProfileData(user.uid, id, newState);
+                    saveProfileList(user.uid, list);
                 }
             },
 
