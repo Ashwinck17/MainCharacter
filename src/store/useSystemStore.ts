@@ -122,7 +122,12 @@ export const useSystemStore = create<SystemStore>()(
                         newStats = calculateStreakBonus(newStats, arc);
                     }
 
-                    const diff = getDifficultyForStats(newStats);
+                    let diff = getDifficultyForStats(newStats);
+
+                    if (day <= 7) {
+                        diff = 'Easy';
+                    }
+
                     const pTasks = TASK_POOL.physical[diff];
                     const mTasks = TASK_POOL.mental[diff];
 
