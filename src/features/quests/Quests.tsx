@@ -18,43 +18,47 @@ export const Quests = () => {
     return (
         <motion.div className="quests-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.1 }}>
             <SystemCard title="DIRECTIVES">
-                {state.dailyTasks.map(t => (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        key={t.id}
-                        className="system-window"
-                        style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', marginBottom: '15px', border: '1px solid #222' }}
-                    >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', marginBottom: '10px' }}>
-                            <span className="neon-text">{t.type.toUpperCase()}</span>
-                            <span style={{ color: 'var(--accent-gold)' }}>[{t.difficulty}]</span>
-                        </div>
-
-                        <div style={{ fontSize: '1.15rem', marginBottom: '15px' }}>{t.description}</div>
-
-                        <div style={{ marginBottom: '15px' }}>
-                            <div className="neon-text" style={{ fontSize: '0.6rem', opacity: 0.7 }}>[ MOTIVATION ]</div>
-                            <div style={{ fontSize: '0.75rem', fontStyle: 'italic', color: 'var(--accent-blue)' }}>"{t.motivation}"</div>
-                        </div>
-
-                        <div style={{ marginBottom: '15px' }}>
-                            <div className="neon-red" style={{ fontSize: '0.6rem', opacity: 0.7 }}>[ PENALTY FOR FAILURE ]</div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--accent-red)' }}>{t.punishment}</div>
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #222', paddingTop: '15px' }}>
-                            <div style={{ fontSize: '0.7rem' }}>
-                                <div style={{ color: 'var(--accent-blue)' }}>XP: +{t.xpReward}</div>
-                                <div style={{ color: 'var(--accent-gold)' }}>STAT: +1 {t.type === 'physical' ? 'STRENGTH' : 'INTELLIGENCE'}</div>
-                                <div style={{ color: 'var(--accent-blue)', opacity: 0.8 }}>BONUS: +1 DISC/FOCUS</div>
+                {state.dailyTasks.map(t => {
+                    const statGain = t.difficulty === 'Hard' ? 4 : t.difficulty === 'Medium' ? 2 : 1;
+                    const discGain = t.difficulty === 'Hard' ? 3 : t.difficulty === 'Medium' ? 2 : 1;
+                    return (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            key={t.id}
+                            className="system-window"
+                            style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', marginBottom: '15px', border: '1px solid #222' }}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', marginBottom: '10px' }}>
+                                <span className="neon-text">{t.type.toUpperCase()}</span>
+                                <span style={{ color: 'var(--accent-gold)' }}>[{t.difficulty}]</span>
                             </div>
-                            <button onClick={() => { audio.playSuccess(); completeTask(t.id); }} disabled={t.completed} style={{ minWidth: '130px' }}>
-                                {t.completed ? "QUEST CLEARED" : "CLAIM REWARD"}
-                            </button>
-                        </div>
-                    </motion.div>
-                ))}
+
+                            <div style={{ fontSize: '1.15rem', marginBottom: '15px' }}>{t.description}</div>
+
+                            <div style={{ marginBottom: '15px' }}>
+                                <div className="neon-text" style={{ fontSize: '0.6rem', opacity: 0.7 }}>[ MOTIVATION ]</div>
+                                <div style={{ fontSize: '0.75rem', fontStyle: 'italic', color: 'var(--accent-blue)' }}>"{t.motivation}"</div>
+                            </div>
+
+                            <div style={{ marginBottom: '15px' }}>
+                                <div className="neon-red" style={{ fontSize: '0.6rem', opacity: 0.7 }}>[ PENALTY FOR FAILURE ]</div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--accent-red)' }}>{t.punishment}</div>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #222', paddingTop: '15px' }}>
+                                <div style={{ fontSize: '0.7rem' }}>
+                                    <div style={{ color: 'var(--accent-blue)' }}>XP: +{t.xpReward}</div>
+                                    <div style={{ color: 'var(--accent-gold)' }}>STAT: +{statGain} {t.type === 'physical' ? 'STRENGTH' : 'INTELLIGENCE'}</div>
+                                    <div style={{ color: 'var(--accent-blue)', opacity: 0.8 }}>BONUS: +{discGain} DISC/FOCUS</div>
+                                </div>
+                                <button onClick={() => { audio.playSuccess(); completeTask(t.id); }} disabled={t.completed} style={{ minWidth: '130px' }}>
+                                    {t.completed ? "QUEST CLEARED" : "CLAIM REWARD"}
+                                </button>
+                            </div>
+                        </motion.div>
+                    );
+                })}
                 {arc === "DISCIPLINE" && (
                     <div className="neon-red" style={{ fontSize: '0.6rem', textAlign: 'center', marginTop: '10px' }}>
                         [ CONSTRAINT: NO PHONE DURING TASK WINDOW ]

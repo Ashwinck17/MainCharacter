@@ -88,21 +88,17 @@ export const AuthManager = () => {
         const updated = profileList.filter(x => x.id !== id);
 
         try {
-            // Sync deletions to Firestore first
-            await Promise.all([
-                deleteProfileFromCloud(user.uid, id),
-                saveProfileList(user.uid, updated),
-            ]);
+            // Delete actual profile data first
+            await deleteProfileFromCloud(user.uid, id);
 
             setIsDeleting(null);
             setDeleteSuccess(id);
 
-            // Wait 1.5s to show success before removing from UI
-            setTimeout(() => {
-                setProfileList(updated);
+            // Wait 1.5s to show success before removing from UI via cloud index overwrite
+            setTimeout(async () => {
+                await saveProfileList(user.uid, updated);
                 setConfirmDelete(null);
                 setDeleteSuccess(null);
-                localStorage.setItem('ascension_profile_list', JSON.stringify(updated));
                 if (activeProfile === id) {
                     setActiveProfile(null);
                     setState(null);
