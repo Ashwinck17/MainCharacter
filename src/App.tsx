@@ -273,6 +273,8 @@ function App() {
     );
   }
 
+  const isDebuffed = state.stats.hp < 40;
+
   return (
     <div className="app-container" style={{ maxWidth: '600px', margin: '0 auto', padding: '20px', paddingBottom: '100px' }}>
       {showSync && (
@@ -301,7 +303,7 @@ function App() {
             <StatBar label="EXPERIENCE" current={Math.floor(state.stats.xp)} max={state.stats.xpRequired} />
           </SystemCard>
           <SystemCard title="ATTRIBUTES">
-            <div className="stats-grid">
+            <div className={`stats-grid ${isDebuffed ? 'grayscale' : ''}`}>
               <Attribute label="STR" value={state.stats.STR} icon={<Sword size={12} />} />
               <Attribute label="INT" value={state.stats.INT} icon={<Brain size={12} />} />
               <Attribute label="DISC" value={state.stats.DISC} icon={<Shield size={12} />} isPercent />
@@ -311,9 +313,11 @@ function App() {
             </div>
           </SystemCard>
           <SystemCard title="SYSTEM LOG">
-            <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>
-              STREAK: {state.stats.streak} DAYS | QUETST: {state.stats.completedCount}/{state.stats.assignedCount}<br />
-              PROFILE: {activeProfile.toUpperCase()}
+            <div style={{ fontSize: '0.75rem', opacity: 0.7, lineHeight: '1.6' }}>
+              STREAK: {state.stats.streak} DAYS<br />
+              QUESTS CLEARED: {state.stats.completedCount} / {state.stats.assignedCount}<br />
+              CURRENT ARC: {arc}<br />
+              PROFILE: {activeProfile.toUpperCase().replace('_', ' ')}
             </div>
           </SystemCard>
         </div>
@@ -323,17 +327,40 @@ function App() {
         <div className="quests-page">
           <SystemCard title="DIRECTIVES">
             {state.dailyTasks.map(t => (
-              <div key={t.id} className="system-window" style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', marginBottom: '15px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem' }}>
+              <div key={t.id} className="system-window" style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', marginBottom: '15px', border: '1px solid #222' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', marginBottom: '10px' }}>
                   <span className="neon-text">{t.type}</span>
                   <span style={{ color: 'var(--accent-gold)' }}>[{t.difficulty}]</span>
                 </div>
-                <div style={{ fontSize: '1.1rem', margin: '10px 0' }}>{t.description}</div>
-                <button onClick={() => completeTask(t.id)} disabled={t.completed} style={{ width: '100%' }}>
-                  {t.completed ? "CLEARED" : "CLAIM REWARD"}
-                </button>
+
+                <div style={{ fontSize: '1.15rem', marginBottom: '15px' }}>{t.description}</div>
+
+                <div style={{ marginBottom: '15px' }}>
+                  <div className="neon-text" style={{ fontSize: '0.6rem', opacity: 0.7 }}>[ MOTIVATION ]</div>
+                  <div style={{ fontSize: '0.75rem', fontStyle: 'italic', color: 'var(--accent-blue)' }}>"{t.motivation}"</div>
+                </div>
+
+                <div style={{ marginBottom: '15px' }}>
+                  <div className="neon-red" style={{ fontSize: '0.6rem', opacity: 0.7 }}>[ PENALTY FOR FAILURE ]</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--accent-red)' }}>{t.punishment}</div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #222', paddingTop: '15px' }}>
+                  <div style={{ fontSize: '0.7rem' }}>
+                    <div style={{ color: 'var(--accent-blue)' }}>XP: +{t.xpReward}</div>
+                    <div style={{ color: 'var(--accent-gold)' }}>STAT: +1 {t.type === 'physical' ? 'STR' : 'INT'}</div>
+                  </div>
+                  <button onClick={() => completeTask(t.id)} disabled={t.completed} style={{ minWidth: '130px' }}>
+                    {t.completed ? "QUEST CLEARED" : "CLAIM REWARD"}
+                  </button>
+                </div>
               </div>
             ))}
+            {arc === "DISCIPLINE" && (
+              <div className="neon-red" style={{ fontSize: '0.6rem', textAlign: 'center', marginTop: '10px' }}>
+                [ CONSTRAINT: NO PHONE DURING TASK WINDOW ]
+              </div>
+            )}
           </SystemCard>
         </div>
       )}
@@ -342,11 +369,27 @@ function App() {
         <div className="boss-page">
           <SystemCard title="WEEKLY TRIAL">
             <div style={{ textAlign: 'center', padding: '20px' }}>
-              <Skull size={40} color="var(--accent-red)" />
-              <h2 className="neon-red">{state.weeklyBoss.name}</h2>
-              <StatBar label="TRIAL PROGRESS" current={state.weeklyBoss.currentQuests} max={5} />
+              <Skull size={40} color={state.weeklyBoss.currentQuests >= 5 ? "var(--accent-blue)" : "var(--accent-red)"} style={{ marginBottom: '10px' }} />
+              <h2 className={state.weeklyBoss.currentQuests >= 5 ? "neon-text" : "neon-red"}>{state.weeklyBoss.name}</h2>
+              <div style={{ fontSize: '0.8rem', marginBottom: '15px', color: 'var(--text-secondary)' }}>
+                STABILITY PROGRESS: {state.weeklyBoss.currentQuests} / 5
+              </div>
+              <StatBar label="COLLECTIVE DATA" current={state.weeklyBoss.currentQuests} max={5} />
+              <p style={{ fontSize: '0.6rem', marginTop: '20px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                "You had time. You just spent it elsewhere."
+              </p>
             </div>
           </SystemCard>
+
+          {day >= 15 && (
+            <SystemCard title="MID-BOSS: THE COMFORT KING">
+              <div style={{ textAlign: 'center' }}>
+                <Lock size={30} color="var(--accent-gold)" />
+                <p style={{ fontSize: '0.8rem' }}>MISSION: NO SKIPS FOR 3 DAYS</p>
+                <div className="neon-red" style={{ fontSize: '0.7rem' }}>[ STATUS: ACTIVE ]</div>
+              </div>
+            </SystemCard>
+          )}
         </div>
       )}
 
@@ -363,14 +406,14 @@ function App() {
   );
 }
 
-const Attribute = ({ label, value, icon, isPercent }: any) => (
+const Attribute = ({ label, value, icon, isPercent }: { label: string, value: number, icon: any, isPercent?: boolean }) => (
   <div style={{ padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between' }}>
     <span style={{ fontSize: '0.7rem', opacity: 0.6, display: 'flex', alignItems: 'center', gap: '5px' }}>{icon} {label}</span>
     <span className="neon-text" style={{ fontSize: '0.8rem' }}>{value}{isPercent ? '%' : ''}</span>
   </div>
 );
 
-const NavButton = ({ active, onClick, icon, label }: any) => (
+const NavButton = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: any, label: string }) => (
   <button onClick={onClick} style={{ border: 'none', background: 'none', color: active ? 'var(--accent-blue)' : '#444', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 0 }}>
     {icon}
     <span style={{ fontSize: '0.6rem' }}>{label}</span>
