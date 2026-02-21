@@ -343,12 +343,12 @@ function App() {
           </SystemCard>
           <SystemCard title="ATTRIBUTES">
             <div className={`stats-grid ${isDebuffed ? 'grayscale' : ''}`}>
-              <Attribute label="STR" value={state.stats.STR} icon={<Sword size={12} />} />
-              <Attribute label="INT" value={state.stats.INT} icon={<Brain size={12} />} />
-              <Attribute label="DISC" value={state.stats.DISC} icon={<Shield size={12} />} isPercent />
-              <Attribute label="WILL" value={state.stats.WILL} icon={<Zap size={12} />} />
+              <Attribute label="STRENGTH" value={state.stats.STR} icon={<Sword size={12} />} />
+              <Attribute label="INTELLIGENCE" value={state.stats.INT} icon={<Brain size={12} />} />
+              <Attribute label="DISCIPLINE" value={state.stats.DISC} icon={<Shield size={12} />} isPercent />
+              <Attribute label="WILLPOWER" value={state.stats.WILL} icon={<Zap size={12} />} />
               <Attribute label="FOCUS" value={state.stats.FOCUS} icon={<Target size={12} />} isPercent />
-              <Attribute label="CHA" value={state.stats.CHA} icon={<Users size={12} />} />
+              <Attribute label="CHARISMA" value={state.stats.CHA} icon={<Users size={12} />} />
             </div>
           </SystemCard>
           <SystemCard title="SYSTEM LOG">
