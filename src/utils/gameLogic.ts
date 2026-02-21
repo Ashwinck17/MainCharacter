@@ -51,3 +51,31 @@ export const getArcForDay = (day: number): string => {
     if (day <= 21) return "PRESSURE";
     return "IDENTITY";
 };
+
+export const calculatePenaltyForMissedTask = (stats: UserStats, arc: string): UserStats => {
+    const newStats = { ...stats };
+    const penaltyXP = arc === "STABILIZATION" ? 10 : arc === "DISCIPLINE" ? 15 : arc === "PRESSURE" ? 20 : 30;
+    newStats.xp = Math.max(newStats.xp - penaltyXP, 0);
+    newStats.hp = Math.max(newStats.hp - 20, 10);
+    newStats.streak = 0;
+    if (arc === "DISCIPLINE") newStats.FOCUS = Math.max(newStats.FOCUS - 5, 0);
+    if (arc === "PRESSURE") newStats.DISC = Math.max(newStats.DISC - 5, 0);
+    return newStats;
+};
+
+export const calculateStreakBonus = (stats: UserStats, arc: string): UserStats => {
+    const newStats = { ...stats };
+    newStats.streak += 1;
+    if (newStats.streak % 7 === 0) {
+        newStats.xp += arc === "DISCIPLINE" ? 75 : 50;
+        newStats.WILL += 2;
+        // Level up check for streak bonus
+        if (newStats.xp >= newStats.xpRequired) {
+            newStats.level += 1;
+            newStats.xp -= newStats.xpRequired;
+            newStats.xpRequired = newStats.level * 100;
+            newStats.hp = Math.min(newStats.hp + 20, newStats.maxHp);
+        }
+    }
+    return newStats;
+};

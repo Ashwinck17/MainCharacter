@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { User } from 'firebase/auth';
 import type { SystemState, Task } from '../types';
 import { INITIAL_STATS, TASK_POOL, STABILIZATION_TASKS } from '../utils/constants';
-import { calculateNewStatsAfterTask, getDifficultyForStats, getJourneyDayFromStart, getArcForDay } from '../utils/gameLogic';
+import { calculateNewStatsAfterTask, getDifficultyForStats, getJourneyDayFromStart, getArcForDay, calculatePenaltyForMissedTask, calculateStreakBonus } from '../utils/gameLogic';
 import { saveProfileData, saveProfileList } from '../api/firebaseService';
 
 interface SystemStore {
@@ -117,18 +117,9 @@ export const useSystemStore = create<SystemStore>()(
                     const arc = getArcForDay(day);
 
                     if (hasUnfinished) {
-                        const penaltyXP = arc === "STABILIZATION" ? 10 : arc === "DISCIPLINE" ? 15 : arc === "PRESSURE" ? 20 : 30;
-                        newStats.xp = Math.max(newStats.xp - penaltyXP, 0);
-                        newStats.hp = Math.max(newStats.hp - 20, 10);
-                        newStats.streak = 0;
-                        if (arc === "DISCIPLINE") newStats.FOCUS = Math.max(newStats.FOCUS - 5, 0);
-                        if (arc === "PRESSURE") newStats.DISC = Math.max(newStats.DISC - 5, 0);
+                        newStats = calculatePenaltyForMissedTask(newStats, arc);
                     } else if (state.dailyTasks.length > 0) {
-                        newStats.streak += 1;
-                        if (newStats.streak % 7 === 0) {
-                            newStats.xp += arc === "DISCIPLINE" ? 75 : 50;
-                            newStats.WILL += 2;
-                        }
+                        newStats = calculateStreakBonus(newStats, arc);
                     }
 
                     const diff = getDifficultyForStats(newStats);
