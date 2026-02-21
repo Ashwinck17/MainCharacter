@@ -1,4 +1,4 @@
-import { UserStats, Task } from '../types';
+import type { UserStats } from '../types';
 
 export const INITIAL_STATS: UserStats = {
     level: 1,

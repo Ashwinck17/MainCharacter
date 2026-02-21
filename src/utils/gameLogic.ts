@@ -1,4 +1,4 @@
-import { UserStats, Task } from '../types';
+import type { UserStats, Task } from '../types';
 
 export const calculateNewStatsAfterTask = (
     currentStats: UserStats,

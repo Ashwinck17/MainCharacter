@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { User } from 'firebase/auth';
-import { SystemState, Task, UserStats } from '../types';
+import type { User } from 'firebase/auth';
+import type { SystemState, Task } from '../types';
 import { INITIAL_STATS, TASK_POOL, STABILIZATION_TASKS } from '../utils/constants';
 import { calculateNewStatsAfterTask, getDifficultyForStats, getJourneyDayFromStart, getArcForDay } from '../utils/gameLogic';
 import { saveProfileData } from '../api/firebaseService';

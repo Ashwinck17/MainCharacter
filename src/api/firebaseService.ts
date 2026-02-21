@@ -1,15 +1,15 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, onAuthStateChanged, User } from "firebase/auth";
+import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
 import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
+import type { SystemState } from "../types";
 
-// TODO: User must provide these credentials
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyA7g9AdI-Ob4eIGxb_1jjXSd8_bWiZAyGg",
+    authDomain: "ascension-system-7aa31.firebaseapp.com",
+    projectId: "ascension-system-7aa31",
+    storageBucket: "ascension-system-7aa31.firebasestorage.app",
+    messagingSenderId: "606861832676",
+    appId: "1:606861832676:web:2b4533c22bfdd9e949d7f1"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -46,4 +46,18 @@ export const subscribeToProfile = (
 
 export const subscribeToAuth = (onUpdate: (user: User | null) => void) => {
     return onAuthStateChanged(auth, onUpdate);
+};
+
+export const fetchStateFromCloud = async (userId: string, profileId: string): Promise<SystemState | null> => {
+    if (!userId || !profileId) return null;
+    try {
+        const docSnap = await getDoc(doc(db, "users", userId, "profiles", profileId));
+        if (docSnap.exists()) {
+            return docSnap.data() as SystemState;
+        }
+        return null;
+    } catch (error) {
+        console.error("Cloud Fetch Error:", error);
+        return null;
+    }
 };
