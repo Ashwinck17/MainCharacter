@@ -30,6 +30,7 @@ export const saveProfileList = async (userId: string, profiles: ProfileEntry[]):
         await setDoc(doc(db, "users", userId, "_index", "profiles"), { list: profiles }, { merge: false });
     } catch (error) {
         console.error("Profile List Save Error:", error);
+        throw error;
     }
 };
 
@@ -93,6 +94,7 @@ export const deleteProfileFromCloud = async (userId: string, profileId: string):
         await deleteDoc(doc(db, "users", userId, "profiles", profileId));
     } catch (error) {
         console.error("Cloud Delete Error:", error);
+        throw error;
     }
 };
 
