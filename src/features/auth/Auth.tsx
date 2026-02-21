@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { useSystemStore } from '../../store/useSystemStore';
 import { SystemCard } from '../../components/SystemCard';
+import { motion } from 'framer-motion';
+import { audio } from '../../utils/audioSystem';
 import {
     auth,
     fetchStateFromCloud,
@@ -110,7 +112,7 @@ export const AuthManager = () => {
     // ── Login screen ──────────────────────────────────────────────────────────
     if (!user) {
         return (
-            <div className="app-container" style={{ maxWidth: '400px', margin: '0 auto', padding: '40px 20px' }}>
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="app-container" style={{ maxWidth: '400px', margin: '0 auto', padding: '40px 20px' }}>
                 <h1 className="neon-text" style={{ textAlign: 'center' }}>SYSTEM IDENTITY</h1>
                 <SystemCard title={isLogin ? "SIGN IN" : "CREATION"}>
                     <input
@@ -135,14 +137,14 @@ export const AuthManager = () => {
                         {isLogin ? "NO IDENTITY? [ ESTABLISH ]" : "ALREADY EXIST? [ LOG IN ]"}
                     </p>
                 </SystemCard>
-            </div>
+            </motion.div>
         );
     }
 
     // ── Profile picker ────────────────────────────────────────────────────────
     if (!activeProfile || !state) {
         return (
-            <div className="app-container" style={{ maxWidth: '600px', margin: '0 auto', padding: '40px 20px' }}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="app-container" style={{ maxWidth: '600px', margin: '0 auto', padding: '40px 20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h1 className="neon-text" style={{ margin: 0 }}>SYSTEM ACCESS</h1>
                     <span onClick={handleLogout} style={{ fontSize: '0.6rem', cursor: 'pointer', color: 'var(--accent-red)' }}>[ DE-SYNC ]</span>
@@ -192,9 +194,11 @@ export const AuthManager = () => {
                                         setLoading(true);
                                         const cloudData = await fetchStateFromCloud(user.uid, p.id);
                                         if (cloudData) {
+                                            audio.playLevelUp();
                                             setState(cloudData);
                                             setActiveProfile(p.id);
                                         } else {
+                                            audio.playError();
                                             alert("PROFILE DATA NOT FOUND IN CLOUD. Try creating a new profile.");
                                         }
                                         setLoading(false);
@@ -220,7 +224,7 @@ export const AuthManager = () => {
                         + INITIALIZE NEW LOAD
                     </button>
                 </SystemCard>
-            </div>
+            </motion.div>
         );
     }
 

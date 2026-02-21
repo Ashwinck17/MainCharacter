@@ -8,16 +8,23 @@ export const calculateNewStatsAfterTask = (
     const newStats = { ...currentStats };
     newStats.completedCount += 1;
 
-    // Point-based stat increments
-    newStats.DISC += 1;
-    newStats.FOCUS += 1;
+    // Point distribution based on difficulty
+    const diffMult = task.difficulty === 'Hard' ? 3 : task.difficulty === 'Medium' ? 2 : 1;
+    newStats.DISC += diffMult;
+    newStats.FOCUS += diffMult;
 
     let xpGained = task.xpReward;
     if (hardcoreMode) xpGained *= 1.25;
     newStats.xp += xpGained;
 
-    if (task.type === 'physical') newStats.STR += 1;
-    if (task.type === 'mental') newStats.INT += 1;
+    // Stat gain based on difficulty
+    const statGain = task.difficulty === 'Hard' ? 4 : task.difficulty === 'Medium' ? 2 : 1;
+    if (task.type === 'physical') newStats.STR += statGain;
+    if (task.type === 'mental') newStats.INT += statGain;
+
+    // Organic stat growth for completing tasks consistently
+    if (newStats.completedCount % 5 === 0) newStats.WILL += 1;
+    if (newStats.completedCount % 10 === 0) newStats.CHA += 1;
 
     if (newStats.xp >= newStats.xpRequired) {
         newStats.level += 1;

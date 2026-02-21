@@ -6,6 +6,7 @@ import { Dashboard } from './features/dashboard/Dashboard';
 import { Quests, BossTrial } from './features/quests/Quests';
 import { SystemCard } from './components/SystemCard';
 import { subscribeToAuth, subscribeToProfile } from './api/firebaseService';
+import { audio } from './utils/audioSystem';
 
 function App() {
   const {
@@ -101,9 +102,9 @@ function App() {
         padding: '10px', background: 'rgba(5, 5, 6, 0.95)', border: '1px solid var(--border-color)', borderRadius: '10px',
         zIndex: 100
       }}>
-        <NavButton active={activeTab === 'status'} onClick={() => setActiveTab('status')} icon={<Activity size={20} />} label="Stats" />
-        <NavButton active={activeTab === 'quests'} onClick={() => setActiveTab('quests')} icon={<Sword size={20} />} label="Quests" />
-        <NavButton active={activeTab === 'boss'} onClick={() => setActiveTab('boss')} icon={<Skull size={20} />} label="Boss" />
+        <NavButton active={activeTab === 'status'} onClick={() => { audio.playTap(); setActiveTab('status'); }} icon={<Activity size={20} />} label="Stats" />
+        <NavButton active={activeTab === 'quests'} onClick={() => { audio.playTap(); setActiveTab('quests'); }} icon={<Sword size={20} />} label="Quests" />
+        <NavButton active={activeTab === 'boss'} onClick={() => { audio.playTap(); setActiveTab('boss'); }} icon={<Skull size={20} />} label="Boss" />
       </nav>
     </div>
   );

@@ -1,7 +1,9 @@
 import { Skull } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { StatBar } from '../../components/StatBar';
 import { SystemCard } from '../../components/SystemCard';
 import { useSystemStore } from '../../store/useSystemStore';
+import { audio } from '../../utils/audioSystem';
 
 export const Quests = () => {
     const { state, completeTask } = useSystemStore();
@@ -14,10 +16,16 @@ export const Quests = () => {
     const arc = (day <= 7) ? "STABILIZATION" : (day <= 14) ? "DISCIPLINE" : (day <= 21) ? "PRESSURE" : "IDENTITY";
 
     return (
-        <div className="quests-page">
+        <motion.div className="quests-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.1 }}>
             <SystemCard title="DIRECTIVES">
                 {state.dailyTasks.map(t => (
-                    <div key={t.id} className="system-window" style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', marginBottom: '15px', border: '1px solid #222' }}>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        key={t.id}
+                        className="system-window"
+                        style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', marginBottom: '15px', border: '1px solid #222' }}
+                    >
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', marginBottom: '10px' }}>
                             <span className="neon-text">{t.type.toUpperCase()}</span>
                             <span style={{ color: 'var(--accent-gold)' }}>[{t.difficulty}]</span>
@@ -41,11 +49,11 @@ export const Quests = () => {
                                 <div style={{ color: 'var(--accent-gold)' }}>STAT: +1 {t.type === 'physical' ? 'STRENGTH' : 'INTELLIGENCE'}</div>
                                 <div style={{ color: 'var(--accent-blue)', opacity: 0.8 }}>BONUS: +1 DISC/FOCUS</div>
                             </div>
-                            <button onClick={() => completeTask(t.id)} disabled={t.completed} style={{ minWidth: '130px' }}>
+                            <button onClick={() => { audio.playSuccess(); completeTask(t.id); }} disabled={t.completed} style={{ minWidth: '130px' }}>
                                 {t.completed ? "QUEST CLEARED" : "CLAIM REWARD"}
                             </button>
                         </div>
-                    </div>
+                    </motion.div>
                 ))}
                 {arc === "DISCIPLINE" && (
                     <div className="neon-red" style={{ fontSize: '0.6rem', textAlign: 'center', marginTop: '10px' }}>
@@ -53,7 +61,7 @@ export const Quests = () => {
                     </div>
                 )}
             </SystemCard>
-        </div>
+        </motion.div>
     );
 };
 
@@ -67,7 +75,7 @@ export const BossTrial = () => {
     const day = Math.floor((now - start) / (1000 * 60 * 60 * 24)) + 1;
 
     return (
-        <div className="boss-page">
+        <motion.div className="boss-page" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ staggerChildren: 0.1 }}>
             <SystemCard title="WEEKLY TRIAL">
                 <div style={{ textAlign: 'center', padding: '20px' }}>
                     <Skull size={40} color={state.weeklyBoss.currentQuests >= 5 ? "var(--accent-blue)" : "var(--accent-red)"} style={{ marginBottom: '10px' }} />
@@ -91,6 +99,6 @@ export const BossTrial = () => {
                     </div>
                 </SystemCard>
             )}
-        </div>
+        </motion.div>
     );
 };
