@@ -1,14 +1,18 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { User } from 'firebase/auth';
 import { SystemState, Task, UserStats } from '../types';
 import { INITIAL_STATS, TASK_POOL, STABILIZATION_TASKS } from '../utils/constants';
 import { calculateNewStatsAfterTask, getDifficultyForStats, getJourneyDayFromStart, getArcForDay } from '../utils/gameLogic';
+import { saveProfileData } from '../api/firebaseService';
 
 interface SystemStore {
+    user: User | null;
     activeProfile: string | null;
     state: SystemState | null;
 
     // Actions
+    setUser: (user: User | null) => void;
     setActiveProfile: (id: string | null) => void;
     setState: (state: SystemState | null) => void;
     createProfile: (name: string) => void;
@@ -20,12 +24,22 @@ interface SystemStore {
 export const useSystemStore = create<SystemStore>()(
     persist(
         (set, get) => ({
+            user: null,
             activeProfile: null,
             state: null,
 
+            setUser: (user) => set({ user }),
+
             setActiveProfile: (id) => set({ activeProfile: id }),
 
-            setState: (state) => set({ state }),
+            setState: (state) => {
+                set({ state });
+                // Auto-save to cloud if possible
+                const { user, activeProfile } = get();
+                if (user && activeProfile && state) {
+                    saveProfileData(user.uid, activeProfile, state);
+                }
+            },
 
             createProfile: (name) => {
                 const id = name.toLowerCase().replace(/\s+/g, '_');
@@ -53,32 +67,42 @@ export const useSystemStore = create<SystemStore>()(
                 }
 
                 set({ activeProfile: id, state: newState });
+
+                // Push newly created profile to cloud
+                const { user } = get();
+                if (user) {
+                    saveProfileData(user.uid, id, newState);
+                }
             },
 
             completeTask: (taskId) => {
-                const { state } = get();
+                const { state, user, activeProfile } = get();
                 if (!state) return;
 
                 const task = state.dailyTasks.find(t => t.id === taskId);
                 if (!task || task.completed) return;
 
                 const newStats = calculateNewStatsAfterTask(state.stats, task, state.hardcoreMode);
-
-                set({
-                    state: {
-                        ...state,
-                        stats: newStats,
-                        dailyTasks: state.dailyTasks.map(t => t.id === taskId ? { ...t, completed: true } : t),
-                        weeklyBoss: {
-                            ...state.weeklyBoss,
-                            currentQuests: state.weeklyBoss.currentQuests + 1
-                        }
+                const newState = {
+                    ...state,
+                    stats: newStats,
+                    dailyTasks: state.dailyTasks.map(t => t.id === taskId ? { ...t, completed: true } : t),
+                    weeklyBoss: {
+                        ...state.weeklyBoss,
+                        currentQuests: state.weeklyBoss.currentQuests + 1
                     }
-                });
+                };
+
+                set({ state: newState });
+
+                // Cloud sync
+                if (user && activeProfile) {
+                    saveProfileData(user.uid, activeProfile, newState);
+                }
             },
 
             checkDailyUpdate: () => {
-                const { state, activeProfile } = get();
+                const { state, activeProfile, user } = get();
                 if (!state || !activeProfile) return;
 
                 const today = new Date().toDateString();
@@ -146,27 +170,31 @@ export const useSystemStore = create<SystemStore>()(
                     newStats.assignedCount += 2;
                     newStats.lastUpdate = new Date().toISOString();
 
-                    set({
-                        state: {
-                            ...state,
-                            stats: newStats,
-                            dailyTasks: newTasks,
-                            weeklyBoss: {
-                                ...state.weeklyBoss,
-                                ...(new Date() > new Date(state.weeklyBoss.deadline) ? {
-                                    completed: false,
-                                    currentQuests: 0,
-                                    deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-                                } : {})
-                            }
+                    const newState = {
+                        ...state,
+                        stats: newStats,
+                        dailyTasks: newTasks,
+                        weeklyBoss: {
+                            ...state.weeklyBoss,
+                            ...(new Date() > new Date(state.weeklyBoss.deadline) ? {
+                                completed: false,
+                                currentQuests: 0,
+                                deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+                            } : {})
                         }
-                    });
+                    };
+
+                    set({ state: newState });
+
+                    // Cloud sync on day change
+                    if (user && activeProfile) {
+                        saveProfileData(user.uid, activeProfile, newState);
+                    }
                 }
             },
 
             syncWithCloud: async () => {
-                // Placeholder for Firebase Sync
-                console.log("Syncing with Firebase...");
+                // This is now handled by onSnapshot in App.tsx
             }
         }),
         {

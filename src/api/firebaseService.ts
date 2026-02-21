@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
 
 // TODO: User must provide these credentials
@@ -16,22 +16,34 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-export const saveStateToCloud = async (userId: string, profileId: string, state: any) => {
+/** 
+ * Real-time Cloud Synchronization
+ * Enterprise standard: Single Source of Truth in Firestore
+ */
+
+export const saveProfileData = async (userId: string, profileId: string, state: any) => {
+    if (!userId || !profileId) return;
     try {
-        await setDoc(doc(db, "users", userId, "profiles", profileId), state);
+        await setDoc(doc(db, "users", userId, "profiles", profileId), state, { merge: true });
     } catch (error) {
         console.error("Cloud Save Error:", error);
     }
 };
 
-export const fetchStateFromCloud = async (userId: string, profileId: string) => {
-    try {
-        const docSnap = await getDoc(doc(db, "users", userId, "profiles", profileId));
+export const subscribeToProfile = (
+    userId: string,
+    profileId: string,
+    onUpdate: (data: any) => void
+) => {
+    if (!userId || !profileId) return () => { };
+    // Real-time listener: Listen for changes from other devices
+    return onSnapshot(doc(db, "users", userId, "profiles", profileId), (docSnap) => {
         if (docSnap.exists()) {
-            return docSnap.data();
+            onUpdate(docSnap.data());
         }
-    } catch (error) {
-        console.error("Cloud Fetch Error:", error);
-    }
-    return null;
+    });
+};
+
+export const subscribeToAuth = (onUpdate: (user: User | null) => void) => {
+    return onAuthStateChanged(auth, onUpdate);
 };

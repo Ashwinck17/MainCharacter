@@ -5,12 +5,44 @@ import { AuthManager } from './features/auth/Auth';
 import { Dashboard } from './features/dashboard/Dashboard';
 import { Quests, BossTrial } from './features/quests/Quests';
 import { SystemCard } from './components/SystemCard';
+import { subscribeToAuth, subscribeToProfile } from './api/firebaseService';
 
 function App() {
-  const { activeProfile, setActiveProfile, state, checkDailyUpdate } = useSystemStore();
+  const {
+    activeProfile,
+    setActiveProfile,
+    state,
+    setState,
+    checkDailyUpdate,
+    user,
+    setUser
+  } = useSystemStore();
+
   const [activeTab, setActiveTab] = useState<'status' | 'quests' | 'boss'>('status');
   const [showSync, setShowSync] = useState(false);
 
+  // 1. Initialize Auth Listener
+  useEffect(() => {
+    const unsubscribe = subscribeToAuth((firebaseUser) => {
+      setUser(firebaseUser);
+    });
+    return () => unsubscribe();
+  }, [setUser]);
+
+  // 2. Initialize Real-time Database Listener
+  useEffect(() => {
+    if (user && activeProfile) {
+      const unsubscribe = subscribeToProfile(user.uid, activeProfile, (cloudState) => {
+        // Only update local state if cloud data exists and is different (enterprise check)
+        if (cloudState && JSON.stringify(cloudState) !== JSON.stringify(state)) {
+          setState(cloudState);
+        }
+      });
+      return () => unsubscribe();
+    }
+  }, [user, activeProfile, setState, state]);
+
+  // 3. Daily Logic Check
   useEffect(() => {
     if (activeProfile && state) {
       checkDailyUpdate();
@@ -22,7 +54,7 @@ function App() {
     alert("CODE COPIED TO CLIPBOARD");
   };
 
-  if (!activeProfile || !state) {
+  if (!user || !activeProfile || !state) {
     return <AuthManager />;
   }
 
@@ -52,7 +84,7 @@ function App() {
 
       <header style={{ textAlign: 'center', marginBottom: '30px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', marginBottom: '15px' }}>
-          <span onClick={() => setActiveProfile(null)} style={{ cursor: 'pointer', color: 'var(--accent-gold)' }}>[ LOG OUT ]</span>
+          <span onClick={() => { setActiveProfile(null); setState(null); }} style={{ cursor: 'pointer', color: 'var(--accent-gold)' }}>[ SELECT PROFILE ]</span>
           <span onClick={() => setShowSync(true)} style={{ cursor: 'pointer', color: 'var(--accent-blue)' }}>[ GEN SYNC CODE ]</span>
         </div>
         <div style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', letterSpacing: '3px' }}>DAY {day} / 30 - {arc} ARC</div>
