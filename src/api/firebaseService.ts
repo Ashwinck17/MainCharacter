@@ -47,6 +47,20 @@ export const fetchProfileList = async (userId: string): Promise<ProfileEntry[]> 
     }
 };
 
+export const subscribeToProfileList = (
+    userId: string,
+    onUpdate: (profiles: ProfileEntry[]) => void
+) => {
+    if (!userId) return () => { };
+    return onSnapshot(doc(db, "users", userId, "_index", "profiles"), (docSnap) => {
+        if (docSnap.exists()) {
+            onUpdate((docSnap.data().list || []) as ProfileEntry[]);
+        } else {
+            onUpdate([]);
+        }
+    });
+};
+
 export const saveProfileData = async (userId: string, profileId: string, state: any) => {
     if (!userId || !profileId) return;
     try {

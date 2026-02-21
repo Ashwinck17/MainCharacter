@@ -8,8 +8,8 @@ import {
     auth,
     fetchStateFromCloud,
     deleteProfileFromCloud,
-    fetchProfileList,
     saveProfileList,
+    subscribeToProfileList
 } from '../../api/firebaseService';
 import type { ProfileEntry } from '../../api/firebaseService';
 
@@ -26,29 +26,37 @@ export const AuthManager = () => {
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
 
-    // Fetch profile list from Firestore whenever the user logs in
+    // Fetch profile list from Firestore real-time across devices
     useEffect(() => {
         if (!user) { setProfileList([]); return; }
-        const loadList = async () => {
-            setListLoading(true);
-            const cloudList = await fetchProfileList(user.uid);
+        setListLoading(true);
+
+        let hasSeeded = false;
+
+        const unsubscribe = subscribeToProfileList(user.uid, async (cloudList) => {
+            setListLoading(false);
             if (cloudList.length > 0) {
                 // Cloud is the source of truth — update localStorage to match
                 localStorage.setItem('ascension_profile_list', JSON.stringify(cloudList));
                 setProfileList(cloudList);
             } else {
                 // First login on this account: seed cloud from localStorage
-                const localList: ProfileEntry[] = JSON.parse(
-                    localStorage.getItem('ascension_profile_list') || '[]'
-                );
-                if (localList.length > 0) {
-                    await saveProfileList(user.uid, localList);
+                if (!hasSeeded) {
+                    hasSeeded = true;
+                    const localList: ProfileEntry[] = JSON.parse(
+                        localStorage.getItem('ascension_profile_list') || '[]'
+                    );
+                    if (localList.length > 0) {
+                        await saveProfileList(user.uid, localList);
+                    }
+                    setProfileList(localList);
+                } else {
+                    setProfileList([]);
                 }
-                setProfileList(localList);
             }
-            setListLoading(false);
-        };
-        loadList();
+        });
+
+        return () => unsubscribe();
     }, [user]);
 
     const handleAuth = async () => {
