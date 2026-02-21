@@ -1,0 +1,162 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Syncopate:wght@400;700&display=swap');
+
+:root {
+  --bg-color: #050506;
+  --card-bg: #111113;
+  --accent-blue: #00f2ff;
+  --accent-red: #ff0055;
+  --accent-gold: #ffcc00;
+  --text-primary: #ffffff;
+  --text-secondary: #88888e;
+  --border-color: #222225;
+  --glow-blue: 0 0 10px rgba(0, 242, 255, 0.4);
+  --glow-red: 0 0 10px rgba(255, 0, 85, 0.4);
+  
+  font-family: 'Outfit', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: dark;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(0, 242, 255, 0.05) 0%, transparent 70%),
+    linear-gradient(rgba(17, 17, 19, 0.5) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 17, 19, 0.5) 1px, transparent 1px);
+  background-size: 100% 100%, 30px 30px, 30px 30px;
+}
+
+#root {
+  width: 100%;
+}
+
+.system-window {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  position: relative;
+  clip-path: polygon(
+    0% 5px, 5px 0%, 
+    calc(100% - 5px) 0%, 100% 5px, 
+    100% calc(100% - 5px), calc(100% - 5px) 100%, 
+    5px 100%, 0% calc(100% - 5px)
+  );
+}
+
+.system-window::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-blue), transparent);
+  opacity: 0.5;
+}
+
+.neon-text {
+  text-shadow: var(--glow-blue);
+  color: var(--accent-blue);
+  font-family: 'Syncopate', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.neon-red {
+  text-shadow: var(--glow-red);
+  color: var(--accent-red);
+}
+
+h1, h2, h3 {
+  font-family: 'Syncopate', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+}
+
+button {
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--accent-blue);
+  color: var(--accent-blue);
+  padding: 0.8rem 1.5rem;
+  font-family: 'Syncopate', sans-serif;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  transition: all 0.3s ease;
+  clip-path: polygon(0 0, 90% 0, 100% 30%, 100% 100%, 10% 100%, 0 70%);
+}
+
+button:hover {
+  background: var(--accent-blue);
+  color: var(--bg-color);
+  box-shadow: var(--glow-blue);
+}
+
+button:disabled {
+  border-color: var(--text-secondary);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+.stat-label {
+  font-family: 'Syncopate', sans-serif;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.progress-container {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent-blue);
+  box-shadow: var(--glow-blue);
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.red-fill {
+  background: var(--accent-red);
+  box-shadow: var(--glow-red);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-blue);
+}
