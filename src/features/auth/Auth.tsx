@@ -5,7 +5,7 @@ import { SystemCard } from '../../components/SystemCard';
 import { auth, fetchStateFromCloud } from '../../api/firebaseService';
 
 export const AuthManager = () => {
-    const { activeProfile, setActiveProfile, state, setState, createProfile, user, setUser } = useSystemStore();
+    const { activeProfile, setActiveProfile, state, setState, createProfile, user } = useSystemStore();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLogin, setIsLogin] = useState(true);

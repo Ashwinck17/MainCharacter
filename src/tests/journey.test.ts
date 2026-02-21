@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { calculateNewStatsAfterTask, getDifficultyForStats, getArcForDay } from '../utils/gameLogic';
 import { INITIAL_STATS } from '../utils/constants';
-import { UserStats, Task } from '../types';
+import type { UserStats, Task } from '../types';
 
 describe('30-Day Success Journey Simulation', () => {
     it('should reach Day 30 with correct scaling and Identify Arc', () => {

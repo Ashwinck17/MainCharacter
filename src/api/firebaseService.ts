@@ -4,12 +4,12 @@ import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "firebase/firestor
 import type { SystemState } from "../types";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyA7g9AdI-Ob4eIGxb_1jjXSd8_bWiZAyGg",
-    authDomain: "ascension-system-7aa31.firebaseapp.com",
-    projectId: "ascension-system-7aa31",
-    storageBucket: "ascension-system-7aa31.firebasestorage.app",
-    messagingSenderId: "606861832676",
-    appId: "1:606861832676:web:2b4533c22bfdd9e949d7f1"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? "AIzaSyA7g9AdI-Ob4eIGxb_1jjXSd8_bWiZAyGg",
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? "ascension-system-7aa31.firebaseapp.com",
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? "ascension-system-7aa31",
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? "ascension-system-7aa31.firebasestorage.app",
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? "606861832676",
+    appId: import.meta.env.VITE_FIREBASE_APP_ID ?? "1:606861832676:web:2b4533c22bfdd9e949d7f1"
 };
 
 const app = initializeApp(firebaseConfig);

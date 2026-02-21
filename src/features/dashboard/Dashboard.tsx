@@ -1,10 +1,10 @@
-import { Sword, Brain, Activity, Shield, Zap, Target, Users, Skull } from 'lucide-react';
+import { Sword, Brain, Shield, Zap, Target, Users } from 'lucide-react';
 import { StatBar } from '../../components/StatBar';
 import { SystemCard } from '../../components/SystemCard';
 import { useSystemStore } from '../../store/useSystemStore';
 
 export const Dashboard = () => {
-    const { state, activeProfile, setActiveProfile } = useSystemStore();
+    const { state, activeProfile } = useSystemStore();
 
     if (!state || !activeProfile) return null;
 
