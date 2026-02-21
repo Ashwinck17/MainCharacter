@@ -21,6 +21,8 @@ export const AuthManager = () => {
     const [profileList, setProfileList] = useState<ProfileEntry[]>([]);
     const [listLoading, setListLoading] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null); // profile id pending delete
+    const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
 
     // Fetch profile list from Firestore whenever the user logs in
     useEffect(() => {
@@ -71,19 +73,37 @@ export const AuthManager = () => {
 
     const handleDelete = async (id: string) => {
         if (!user) return;
+
+        setIsDeleting(id);
         const updated = profileList.filter(x => x.id !== id);
-        // Update state + localStorage immediately
-        setProfileList(updated);
-        setConfirmDelete(null);
-        localStorage.setItem('ascension_profile_list', JSON.stringify(updated));
-        // Sync deletions to Firestore
-        await Promise.all([
-            deleteProfileFromCloud(user.uid, id),
-            saveProfileList(user.uid, updated),
-        ]);
-        if (activeProfile === id) {
-            setActiveProfile(null);
-            setState(null);
+
+        try {
+            // Sync deletions to Firestore first
+            await Promise.all([
+                deleteProfileFromCloud(user.uid, id),
+                saveProfileList(user.uid, updated),
+            ]);
+
+            setIsDeleting(null);
+            setDeleteSuccess(id);
+
+            // Wait 1.5s to show success before removing from UI
+            setTimeout(() => {
+                setProfileList(updated);
+                setConfirmDelete(null);
+                setDeleteSuccess(null);
+                localStorage.setItem('ascension_profile_list', JSON.stringify(updated));
+                if (activeProfile === id) {
+                    setActiveProfile(null);
+                    setState(null);
+                }
+            }, 1500);
+
+        } catch (err) {
+            console.error(err);
+            setIsDeleting(null);
+            setConfirmDelete(null);
+            alert("Delete failed. Please check your connection.");
         }
     };
 
@@ -145,7 +165,15 @@ export const AuthManager = () => {
 
                     {!listLoading && profileList.map(p => (
                         <div key={p.id} style={{ marginBottom: '10px' }}>
-                            {confirmDelete === p.id ? (
+                            {deleteSuccess === p.id ? (
+                                <div style={{ display: 'flex', justifyContent: 'center', padding: '10px', background: 'rgba(50, 205, 50, 0.1)', border: '1px solid limegreen' }}>
+                                    <span style={{ fontSize: '0.65rem', color: 'limegreen' }}>DELETE SUCCESS: "{p.name.toUpperCase()}" PURGED.</span>
+                                </div>
+                            ) : isDeleting === p.id ? (
+                                <div style={{ display: 'flex', justifyContent: 'center', padding: '10px', background: 'rgba(255,59,48,0.06)', border: '1px solid var(--accent-red)' }}>
+                                    <span style={{ fontSize: '0.65rem', color: 'var(--accent-red)' }}>PURGING "{p.name.toUpperCase()}"... [WAIT]</span>
+                                </div>
+                            ) : confirmDelete === p.id ? (
                                 // Inline confirm — no window.confirm (blocked in PWA mode)
                                 <div style={{ display: 'flex', gap: '8px', border: '1px solid var(--accent-red)', padding: '10px', background: 'rgba(255,59,48,0.06)' }}>
                                     <span style={{ flex: 1, fontSize: '0.65rem', color: 'var(--accent-red)', display: 'flex', alignItems: 'center' }}>
@@ -154,7 +182,7 @@ export const AuthManager = () => {
                                     <button onClick={() => handleDelete(p.id)} style={{ borderColor: 'var(--accent-red)', color: 'var(--accent-red)', background: 'rgba(255,59,48,0.1)', padding: '4px 10px', fontSize: '0.6rem' }}>
                                         CONFIRM
                                     </button>
-                                    <button onClick={() => setConfirmDelete(null)} style={{ padding: '4px 10px', fontSize: '0.6rem' }}>
+                                    <button onClick={() => setConfirmDelete(null)} disabled={isDeleting === p.id} style={{ padding: '4px 10px', fontSize: '0.6rem' }}>
                                         CANCEL
                                     </button>
                                 </div>
