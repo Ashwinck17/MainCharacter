@@ -241,15 +241,25 @@ function App() {
   const importProfile = (json: string) => {
     try {
       const imported = JSON.parse(json);
+      if (!imported.stats || !imported.startDate) throw new Error();
+
       const id = `sync_${Date.now()}`;
+      const name = imported.profileName || `Sync_${new Date().toLocaleDateString()}`;
+
       localStorage.setItem(`ascension_profile_${id}`, JSON.stringify(imported));
       const list = JSON.parse(localStorage.getItem('ascension_profile_list') || '[]');
-      list.push({ id, name: `Sync_${new Date().toLocaleDateString()}` });
+      list.push({ id, name });
       localStorage.setItem('ascension_profile_list', JSON.stringify(list));
+
       setActiveProfile(id);
       setState(imported);
       setExportInput('');
-    } catch (e) { alert("Corrupted Code"); }
+    } catch (e) { alert("ERROR: INVALID SYNC CODE. USE [GEN SYNC CODE] ON DEVICE A."); }
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(JSON.stringify({ ...state, profileName: activeProfile }));
+    alert("CODE COPIED TO CLIPBOARD");
   };
 
   if (!activeProfile || !state) {
@@ -257,17 +267,38 @@ function App() {
     return (
       <div className="app-container" style={{ maxWidth: '600px', margin: '0 auto', padding: '40px 20px' }}>
         <h1 className="neon-text" style={{ textAlign: 'center' }}>SYSTEM ACCESS</h1>
-        <SystemCard title="PROFILES">
+
+        <div style={{ padding: '15px', border: '1px solid var(--accent-gold)', marginBottom: '30px', background: 'rgba(255, 204, 0, 0.05)' }}>
+          <div className="neon-text" style={{ fontSize: '0.6rem', color: 'var(--accent-gold)', marginBottom: '5px' }}>[ SYNC ADVISORY ]</div>
+          <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', margin: 0 }}>
+            This system runs on <strong>Local-First Encryption</strong>. Profiles do not auto-cloud sync.
+            To move progress to another device, you MUST copy your <strong>Sync Code</strong> from Device A and paste it here.
+          </p>
+        </div>
+
+        <SystemCard title="LOAD PROFILES">
+          {list.length === 0 && <p style={{ fontSize: '0.7rem', opacity: 0.5, textAlign: 'center' }}>NO LOCAL PROFILES DETECTED.</p>}
           {list.map((p: any) => (
             <button key={p.id} onClick={() => { setActiveProfile(p.id); setState(JSON.parse(localStorage.getItem(`ascension_profile_${p.id}`)!)); }} style={{ width: '100%', marginBottom: '10px' }}>
-              LOAD: {p.name}
+              ACCESS LOAD: {p.name}
             </button>
           ))}
-          <button onClick={() => { const n = prompt("Name:"); if (n) createNewProfile(n); }} style={{ width: '100%', borderColor: 'var(--accent-gold)' }}>+ NEW LOAD</button>
+          <button onClick={() => { const n = prompt("ENTER PROFILE IDENTITY:"); if (n) createNewProfile(n); }} style={{ width: '100%', borderColor: 'var(--accent-gold)', color: 'var(--accent-gold)', marginTop: '10px' }}>
+            + INITIALIZE NEW LOAD
+          </button>
         </SystemCard>
-        <SystemCard title="SYNC INPUT">
-          <textarea value={exportInput} onChange={e => setExportInput(e.target.value)} placeholder="Paste Sync Code..." style={{ width: '100%', height: '80px', background: '#000', color: 'var(--accent-blue)', border: '1px solid #333', padding: '10px', fontSize: '0.6rem' }} />
-          <button onClick={() => importProfile(exportInput)} style={{ width: '100%', marginTop: '10px' }}>INITIALIZE SYNC</button>
+
+        <SystemCard title="IMPORT PROGRESS">
+          <p style={{ fontSize: '0.65rem', marginBottom: '10px', color: 'var(--text-secondary)' }}>PASTE DATA CODE FROM ANOTHER SYSTEM:</p>
+          <textarea
+            value={exportInput}
+            onChange={e => setExportInput(e.target.value)}
+            placeholder="Paste Sync Code..."
+            style={{ width: '100%', height: '80px', background: '#000', color: 'var(--accent-blue)', border: '1px solid #333', padding: '10px', fontSize: '0.5rem', fontFamily: 'monospace' }}
+          />
+          <button onClick={() => importProfile(exportInput)} style={{ width: '100%', marginTop: '10px' }}>
+            LINK EXTERNAL PROGRESS
+          </button>
         </SystemCard>
       </div>
     );
@@ -278,10 +309,18 @@ function App() {
   return (
     <div className="app-container" style={{ maxWidth: '600px', margin: '0 auto', padding: '20px', paddingBottom: '100px' }}>
       {showSync && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.95)', zIndex: 9999, padding: '20px', display: 'flex', alignItems: 'center' }}>
-          <SystemCard title="SYNC CODE" className="sync-modal">
-            <textarea readOnly value={JSON.stringify(state)} style={{ width: '100%', height: '200px', background: '#000', color: 'var(--accent-blue)' }} />
-            <button onClick={() => setShowSync(false)} style={{ width: '100%', marginTop: '15px' }}>BACK TO SYSTEM</button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.98)', zIndex: 9999, padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <SystemCard title="IDENTIFICATION CODE" style={{ width: '100%' }}>
+            <p style={{ fontSize: '0.7rem', marginBottom: '10px' }}>USE THIS CODE TO RESTORE DATA ON ANY DEVICE:</p>
+            <textarea
+              readOnly
+              value={JSON.stringify({ ...state, profileName: activeProfile })}
+              style={{ width: '100%', height: '220px', background: '#000', color: 'var(--accent-blue)', border: '1px solid var(--accent-blue)', padding: '10px', fontSize: '0.5rem', fontFamily: 'monospace', marginBottom: '15px' }}
+            />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <button onClick={handleCopy}>COPY CODE</button>
+              <button onClick={() => setShowSync(false)} style={{ borderColor: 'var(--text-secondary)', color: 'var(--text-secondary)' }}>CLOSE</button>
+            </div>
           </SystemCard>
         </div>
       )}

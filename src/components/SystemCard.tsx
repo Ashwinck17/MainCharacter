@@ -5,15 +5,16 @@ interface SystemCardProps {
     children: React.ReactNode;
     title?: string;
     className?: string;
+    style?: React.CSSProperties;
 }
 
-export const SystemCard = ({ children, title, className = "" }: SystemCardProps) => {
+export const SystemCard = ({ children, title, className = "", style = {} }: SystemCardProps) => {
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className={`system-window ${className}`}
-            style={{ padding: '20px', marginBottom: '20px' }}
+            style={{ padding: '20px', marginBottom: '20px', ...style }}
         >
             {title && (
                 <h3 className="neon-text" style={{ fontSize: '0.9rem', marginBottom: '15px', marginTop: 0 }}>
