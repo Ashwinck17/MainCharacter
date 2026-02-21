@@ -91,8 +91,11 @@ export const AuthManager = () => {
                             if (cloudData) {
                                 setState(cloudData);
                                 setActiveProfile(p.id);
+                            } else if (state && activeProfile === p.id) {
+                                // Fallback: use locally persisted state if it matches this profile
+                                setActiveProfile(p.id);
                             } else {
-                                alert("PROFILE DATA NOT FOUND IN CLOUD.");
+                                alert("PROFILE DATA NOT FOUND IN CLOUD. Try creating a new profile.");
                             }
                             setLoading(false);
                         }} style={{ width: '100%', marginBottom: '10px' }} disabled={loading}>
