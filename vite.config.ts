@@ -37,17 +37,6 @@ export default defineConfig({
       workbox: {
         // Cache all assets for offline use
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        runtimeCaching: [
-          {
-            // Cache Firebase Auth & Firestore API calls with network-first
-            urlPattern: /^https:\/\/(firestore|firebase)\.googleapis\.com\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'firebase-cache',
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
-            },
-          },
-        ],
       },
     }),
   ],
